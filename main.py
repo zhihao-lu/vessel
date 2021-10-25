@@ -42,7 +42,7 @@ def tensor_to_yolo(x, xmax=1920, ymax=1080):
     y = (y1 + y2)/2
     w = x2 - x1
     h = y2 - y1
-    return list(map(lambda x: str(x), (x/xmax, y/ymax, w/xmax, h/ymax)))
+    return list(map(lambda x: str(round(x, 6)), (x/xmax, y/ymax, w/xmax, h/ymax)))
 
 
 dataset = LoadImages("horizon_1_ship.avi")
@@ -93,8 +93,8 @@ def d(dataset, device, save_path, keep = (), skip=4):
                         if idx in keep:
                             row_d["no_of_ships"] = v_count
                             row_d["no_of_kayaks"] = k_count
-                            row_d["ships_coordinates"] = ";".join(map(lambda x: "_".join(x), v_coord)) + ";" if v_coord else "-"
-                            row_d["kayaks_coordinates"] = ";".join(map(lambda x: "_".join(x), k_coord)) + ";" if k_coord else "-"
+                            row_d["ships_coordinates"] = ";".join(sorted(map(lambda x: "_".join(x), v_coord))) + ";" if v_coord else "-"
+                            row_d["kayaks_coordinates"] = ";".join(sorted(map(lambda x: "_".join(x), k_coord))) + ";" if k_coord else "-"
                             row_d["frame_index"] = idx
                             rows.append(row_d)
                 if vid_path[i] != save_path:  # new video
@@ -102,7 +102,7 @@ def d(dataset, device, save_path, keep = (), skip=4):
                     if isinstance(vid_writer[i], cv2.VideoWriter):
                         vid_writer[i].release()  # release previous video writer
                     if vid_cap:  # video
-                        fps = vid_cap.get(cv2.CAP_PROP_FPS)// skip
+                        fps = vid_cap.get(cv2.CAP_PROP_FPS)// (skip/2)
                         w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                         h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                     else:  # stream
