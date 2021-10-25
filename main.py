@@ -85,63 +85,65 @@ def get_frames(path, output_dir, keep=(), skip=2):
 
 dataset = LoadImages("horizon_1_ship.avi")
 device = select_device("cpu")
-def d(dataset, device):
+def d(dataset, device, keep = (), skip=4):
     a = 0
     bs = max(1, len(dataset))
     vid_path, vid_writer = [None] * bs, [None] * bs
-    for path, img, im0s, vid_cap in dataset:
-        img = torch.from_numpy(img).to(device).float()
-        img /= 255.0  # normalize image
+    for idx, t in enumerate(dataset):
+        path, img, im0s, vid_cap = t
+        if not (idx % skip) or idx in keep:
+            img = torch.from_numpy(img).to(device).float()
+            img /= 255.0  # normalize image
 
-        if img.ndimension() == 3:
-            img = img.unsqueeze(0)  # Include batch dimension
+            if img.ndimension() == 3:
+                img = img.unsqueeze(0)  # Include batch dimension
 
-            pred = model(img)[0]
+                pred = model(img)[0]
 
-            # Apply NMS (https://towardsdatascience.com/non-maximum-suppression-nms-93ce178e177c)
-            # To group multiple bounding boxes into 1 based on IOU
-            pred = non_max_suppression(pred)
+                # Apply NMS (https://towardsdatascience.com/non-maximum-suppression-nms-93ce178e177c)
+                # To group multiple bounding boxes into 1 based on IOU
+                pred = non_max_suppression(pred)
 
-            # Process detections
-            for i, det in enumerate(pred):  # detections per image
-                p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
+                # Process detections
+                for i, det in enumerate(pred):  # detections per image
+                    p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
 
-                p = Path(p)  # to Path
-                save_path = f"pred/a.mp4"
-                a += 1# img.jpg
-                # s += '%gx%g ' % img.shape[2:]  # print string
-                gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-                if len(det):
-                    # Rescale boxes from img_size to im0 size
-                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                    p = Path(p)  # to Path
+                    save_path = f"pred/a.mp4"
+                    a += 1# img.jpg
+                    # s += '%gx%g ' % img.shape[2:]  # print string
+                    gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+                    if len(det):
+                        # Rescale boxes from img_size to im0 size
+                        det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
-                    # Print results
-                    # for c in det[:, -1].unique():
-                        # n = (det[:, -1] == c).sum()  # detections per class
-                        # s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                        # Print results
+                        # for c in det[:, -1].unique():
+                            # n = (det[:, -1] == c).sum()  # detections per class
+                            # s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                    for *xyxy, conf, cls in reversed(det):
-                        c = int(cls)  # integer class
-                        label = f'{names[c]} {conf:.2f}'
-                        plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=3)
+                        for *xyxy, conf, cls in reversed(det):
+                            c = int(cls)  # integer class
+                            label = f'{names[c]} {conf:.2f}'
+                            plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=3)
 
-            # Save image
-            if dataset.mode == 'image':
-                cv2.imwrite(save_path, im0)
-            else:  # 'video' or 'stream'
-                if vid_path[i] != save_path:  # new video
-                    vid_path[i] = save_path
-                    if isinstance(vid_writer[i], cv2.VideoWriter):
-                        vid_writer[i].release()  # release previous video writer
-                    if vid_cap:  # video
-                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    else:  # stream
-                        fps, w, h = 30, im0.shape[1], im0.shape[0]
-                        save_path += '.mp4'
-                    vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-                vid_writer[i].write(im0)
+                # Save image
+                if dataset.mode == 'image':
+                    cv2.imwrite(save_path, im0)
+                else:  # 'video' or 'stream'
+                    if vid_path[i] != save_path:  # new video
+                        vid_path[i] = save_path
+                        if isinstance(vid_writer[i], cv2.VideoWriter):
+                            vid_writer[i].release()  # release previous video writer
+                        if vid_cap:  # video
+                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        else:  # stream
+                            fps, w, h = 30, im0.shape[1], im0.shape[0]
+                            save_path += '.mp4'
+                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                    vid_writer[i].write(im0)
 
 
 import time
