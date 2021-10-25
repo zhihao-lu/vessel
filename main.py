@@ -1,6 +1,5 @@
 import cv2.cv2 as cv2
 import glob
-import pandas as pd
 import os
 from models.experimental import attempt_load
 from utils.datasets import LoadImages
@@ -9,6 +8,8 @@ from utils.plots import colors, plot_one_box
 from utils.torch_utils import select_device, load_classifier
 import torch
 from pathlib import Path
+import json
+
 
 WEIGHTS = os.path.join("exp86", "weights", "best.pt")
 
@@ -82,6 +83,14 @@ def get_frames(path, output_dir, keep=(), skip=2):
 
     vid.release()
     cv2.destroyAllWindows()
+
+
+def get_frames_from_json(path):
+    with open(path) as json_file:
+        data = json.load(json_file)
+
+    return tuple(data['frames_to_infer'])
+
 
 dataset = LoadImages("horizon_1_ship.avi")
 device = select_device("cpu")
