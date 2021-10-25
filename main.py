@@ -136,7 +136,7 @@ def d(dataset, device, keep = (), skip=4):
                         if isinstance(vid_writer[i], cv2.VideoWriter):
                             vid_writer[i].release()  # release previous video writer
                         if vid_cap:  # video
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                            fps = vid_cap.get(cv2.CAP_PROP_FPS)// skip
                             w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                             h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         else:  # stream
