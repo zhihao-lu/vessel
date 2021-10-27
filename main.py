@@ -13,6 +13,15 @@ import csv
 
 
 def get_frames_from_json(path):
+    """
+    Converts given json of frames to tuple
+
+    Args:
+        path (str): Path of input JSON.
+
+    Returns:
+        tuple: Tuple of frame numbers.
+    """
     with open(path) as json_file:
         data = json.load(json_file)
 
@@ -20,6 +29,16 @@ def get_frames_from_json(path):
 
 
 def write_to_csv(rows, filename):
+    """
+    Write given list to appropriate .csv output
+
+    Args:
+        rows (list[dict]): List of dictionaries of data to write to csv
+        filename (str): Filename without .csv extension
+
+    Returns:
+        None
+    """
     headers = ["frame_index", "no_of_ships", "no_of_kayaks", "ships_coordinates", "kayaks_coordinates"]
 
     with open(f'{filename}.csv', 'w', encoding='UTF8', newline='') as f:
@@ -29,6 +48,19 @@ def write_to_csv(rows, filename):
 
 
 def tensor_to_yolo(x, xmax=1920, ymax=1080):
+    """
+    Converts tensors to yolov3 coordinate format
+
+    Args:
+        x (list[tensor]): list of coordinates in tensor form.
+        xmax (int): Max value of x dimension (width).
+            Defaults to 1920.
+        ymax (int): Max value of y dimension (height).
+            Defaults to 1080.
+
+    Returns:
+        list: List of string of coordinates in yoloV3 format to 6dp.
+    """
     x1, y1, x2, y2 = float(x[0]), float(x[1]), float(x[2]), float(x[3])
     x = (x1 + x2)/2
     y = (y1 + y2)/2
@@ -37,7 +69,23 @@ def tensor_to_yolo(x, xmax=1920, ymax=1080):
     return list(map(lambda x: str(round(x, 6)), (x/xmax, y/ymax, w/xmax, h/ymax)))
 
 
-def process(dataset, device, save_path, model, names, keep = (), skip=4):
+def process(dataset, device, save_path, model, names, keep=(), skip=4):
+    """
+    Processes given video to generate .mp4 and .csv output
+
+    Args:
+        dataset (Dataset): Dataset object with file as input, generated using LoadImages function from utils.dataset.
+        device (Device): Device object generated from select_device.
+        save_path (str): Filename without extensions.
+        model (Model): Model with weights loaded using attempt_load from models.experimental
+        names (list): List of classes.
+        keep (Tuple): Tuple of frame numbers to keep and output to .csv.
+        skip (int): Number of frames to skip to improve efficiency.
+            Defaults to 4
+
+    Returns:
+        None
+    """
     bs = max(1, len(dataset))
     vid_path, vid_writer = [None] * bs, [None] * bs
 
@@ -99,14 +147,21 @@ def process(dataset, device, save_path, model, names, keep = (), skip=4):
                 vid_writer[i].write(im0)
     write_to_csv(rows, save_path)
 
-import time
-def test():
-    start = time.time()
-    d(dataset, device, "pred/a.mp4", keep = [0,12,32,44])
-    print(time.time() - start)
-
 
 def process_video(video_path, json_path, weights_path, d="cpu"):
+    """
+    Runs entire process.
+
+    Args:
+        video_path (str): Path to video file.
+        json_path (str): Path to JSON file.
+        weights_path (str): Path to weights file.
+        d (str): Device to use.
+            Defaults to 'cpu'.
+
+    Returns
+        None
+    """
     start = time.time()
 
     # Prepare dataset
