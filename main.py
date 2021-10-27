@@ -11,15 +11,6 @@ from pathlib import Path
 import json
 import csv
 
-WEIGHTS = os.path.join("exp86", "weights", "best.pt")
-
-
-
-RESULTS_FOLDER = "pred"
-
-model = attempt_load(WEIGHTS, map_location="cpu")
-names = model.module.names if hasattr(model, 'module') else model.names
-
 
 def get_frames_from_json(path):
     with open(path) as json_file:
@@ -28,13 +19,14 @@ def get_frames_from_json(path):
     return tuple(data['frames_to_infer'])
 
 
-def write_to_csv(rows, filename="a"):
+def write_to_csv(rows, filename):
     headers = ["frame_index", "no_of_ships", "no_of_kayaks", "ships_coordinates", "kayaks_coordinates"]
 
     with open(f'{filename}.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=headers)
         writer.writeheader()
         writer.writerows(rows)
+
 
 def tensor_to_yolo(x, xmax=1920, ymax=1080):
     x1, y1, x2, y2 = float(x[0]), float(x[1]), float(x[2]), float(x[3])
@@ -45,11 +37,7 @@ def tensor_to_yolo(x, xmax=1920, ymax=1080):
     return list(map(lambda x: str(round(x, 6)), (x/xmax, y/ymax, w/xmax, h/ymax)))
 
 
-dataset = LoadImages("horizon_1_ship.avi")
-device = select_device("cpu")
-
-
-def d(dataset, device, save_path, keep = (), skip=4):
+def process(dataset, device, save_path, model, names, keep = (), skip=4):
     bs = max(1, len(dataset))
     vid_path, vid_writer = [None] * bs, [None] * bs
 
@@ -101,16 +89,15 @@ def d(dataset, device, save_path, keep = (), skip=4):
                     vid_path[i] = save_path
                     if isinstance(vid_writer[i], cv2.VideoWriter):
                         vid_writer[i].release()  # release previous video writer
-                    if vid_cap:  # video
                         fps = vid_cap.get(cv2.CAP_PROP_FPS)// (skip/2)
                         w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                         h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                     else:  # stream
                         fps, w, h = 30, im0.shape[1], im0.shape[0]
                         save_path += '.mp4'
-                    vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                    vid_writer[i] = cv2.VideoWriter(save_path + "_processed.mp4", cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                 vid_writer[i].write(im0)
-    write_to_csv(rows)
+    write_to_csv(rows, save_path)
 
 import time
 def test():
@@ -119,3 +106,20 @@ def test():
     print(time.time() - start)
 
 
+def process_video(video_path, json_path, weights_path, d="cpu"):
+    start = time.time()
+
+    # Prepare dataset
+    dataset = LoadImages(video_path)
+    device = select_device(d)
+    frames = get_frames_from_json(json_path)
+
+    # Prepare model
+    model = attempt_load(weights_path, map_location="cpu")
+    names = model.module.names if hasattr(model, 'module') else model.names
+
+    # Generate output
+    output_path = video_path[:-4]
+    process(dataset, device, output_path, model, names, keep=frames)
+
+    print(time.time() - start)
