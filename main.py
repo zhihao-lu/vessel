@@ -47,26 +47,28 @@ def write_to_csv(rows, filename):
         writer.writerows(rows)
 
 
-def tensor_to_yolo(x, xmax=1920, ymax=1080):
+def tensor_to_yolo(x, conf, xmax=1920, ymax=1080):
     """
     Converts tensors to yolov3 coordinate format
 
     Args:
         x (list[tensor]): list of coordinates in tensor form.
+        conf (float): Confidence score.
         xmax (int): Max value of x dimension (width).
             Defaults to 1920.
         ymax (int): Max value of y dimension (height).
             Defaults to 1080.
 
     Returns:
-        list: List of string of coordinates in yoloV3 format to 6dp.
+        list: List of string of coordinates in yoloV3 format to 6dp and confidence score
     """
     x1, y1, x2, y2 = float(x[0]), float(x[1]), float(x[2]), float(x[3])
     x = (x1 + x2)/2
     y = (y1 + y2)/2
     w = x2 - x1
     h = y2 - y1
-    return list(map(lambda x: str(round(x, 6)), (x/xmax, y/ymax, w/xmax, h/ymax)))
+    conf = round(conf, 2)
+    return list(map(lambda x: str(round(x, 6)), (x/xmax, y/ymax, w/xmax, h/ymax, conf)))
 
 
 def process(dataset, device, save_path, model, names, keep=(), skip=4):
@@ -119,10 +121,10 @@ def process(dataset, device, save_path, model, names, keep=(), skip=4):
                             if idx in keep:
                                 if c == 0:
                                     v_count += 1
-                                    v_coord.append(tensor_to_yolo(xyxy))
+                                    v_coord.append(tensor_to_yolo(xyxy, conf))
                                 else:
                                     k_count += 1
-                                    k_coord.append(tensor_to_yolo(xyxy))
+                                    k_coord.append(tensor_to_yolo(xyxy, conf))
 
                             label = f'{names[c]} {conf:.2f}'
                             plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=3)
