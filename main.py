@@ -135,18 +135,21 @@ def process(dataset, device, save_path, model, names, keep=(), skip=4):
                             row_d["kayaks_coordinates"] = ";".join(sorted(map(lambda x: "_".join(x), k_coord))) + ";" if k_coord else "-"
                             row_d["frame_index"] = idx
                             rows.append(row_d)
-                if vid_path[i] != save_path:  # new video
-                    vid_path[i] = save_path
-                    if isinstance(vid_writer[i], cv2.VideoWriter):
-                        vid_writer[i].release()  # release previous video writer
-                        fps = vid_cap.get(cv2.CAP_PROP_FPS)// (skip/2)
-                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                    else:  # stream
-                        fps, w, h = 30, im0.shape[1], im0.shape[0]
-                        save_path += '.mp4'
-                    vid_writer[i] = cv2.VideoWriter(save_path + "_processed.mp4", cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-                vid_writer[i].write(im0)
+                if dataset.mode == 'image':
+                    cv2.imwrite(save_path, im0)
+                else:
+                    if vid_path[i] != save_path:  # new video
+                        vid_path[i] = save_path
+                        if isinstance(vid_writer[i], cv2.VideoWriter):
+                            vid_writer[i].release()  # release previous video writer
+                            fps = vid_cap.get(cv2.CAP_PROP_FPS)// (skip/2)
+                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        else:  # stream
+                            fps, w, h = 30, im0.shape[1], im0.shape[0]
+                            save_path += '.mp4'
+                        vid_writer[i] = cv2.VideoWriter(save_path + "_processed.mp4", cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                    vid_writer[i].write(im0)
     write_to_csv(rows, save_path)
 
 
