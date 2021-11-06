@@ -1,5 +1,6 @@
-import cv2.cv2 as cv2
-import glob
+import cv2 as cv2
+import time
+import argparse
 import os
 from models.experimental import attempt_load
 from utils.datasets import LoadImages
@@ -7,7 +8,6 @@ from utils.general import check_img_size, non_max_suppression, apply_classifier,
 from utils.plots import colors, plot_one_box
 from utils.torch_utils import select_device, load_classifier
 import torch
-from pathlib import Path
 import json
 import csv
 
@@ -67,7 +67,7 @@ def tensor_to_yolo(x, conf, xmax=1920, ymax=1080):
     y = (y1 + y2)/2
     w = x2 - x1
     h = y2 - y1
-    conf = round(conf, 2)
+    conf = round(float(conf), 2)
     return list(map(lambda x: str(round(x, 6)), (x/xmax, y/ymax, w/xmax, h/ymax, conf)))
 
 
@@ -150,10 +150,10 @@ def process(dataset, device, save_path, model, names, keep=(), skip=4):
                             save_path += '.mp4'
                         vid_writer[i] = cv2.VideoWriter(save_path + "_processed.mp4", cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer[i].write(im0)
-    write_to_csv(rows, save_path)
+    write_to_csv(rows, save_path[:-4])
 
 
-def process_video(video_path, json_path, weights_path, d="cpu"):
+def process_video(video_path, json_path, weights_path, d="cpu", relative_path=""):
     """
     Runs entire process.
 
@@ -170,16 +170,30 @@ def process_video(video_path, json_path, weights_path, d="cpu"):
     start = time.time()
 
     # Prepare dataset
-    dataset = LoadImages(video_path)
+    dataset = LoadImages(relative_path + video_path)
     device = select_device(d)
-    frames = get_frames_from_json(json_path)
+    frames = get_frames_from_json(relative_path + json_path)
 
     # Prepare model
     model = attempt_load(weights_path, map_location="cpu")
     names = model.module.names if hasattr(model, 'module') else model.names
 
     # Generate output
-    output_path = video_path[:-4]
+    output_path = relative_path + video_path[:-4]
     process(dataset, device, output_path, model, names, keep=frames)
 
     print(time.time() - start)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--vid', type=str, required=True)
+    parser.add_argument('--json', type=str, required=True)
+    parser.add_argument('--weights', type=str, required=False)
+    args = parser.parse_args()
+
+    weights = "best.pt"
+    if args.weights is not None:
+        weights = args.weight
+    process_video(args.vid, args.json, weights, relative_path="/app/")
+
