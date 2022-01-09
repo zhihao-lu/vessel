@@ -1,3 +1,5 @@
+Machine learning model using YOLOv3 to detect ships and kayaks along the coast of Singapore islands. Project for DSA4261 in conjunction with GovTech
+
 Folder structure:
 
 <root_folder>
